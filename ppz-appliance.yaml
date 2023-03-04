@@ -2,6 +2,7 @@
 
 - name: Provision infrastructure
   hosts: openstack
+  become: yes
   roles:
     - cluster_infra
 
