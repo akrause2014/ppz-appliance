@@ -18,10 +18,10 @@
     - ansible.builtin.include_role:
         name: private_config
 
-#- hosts: localhost
-#  tasks:
-#    - debug: var=outputs
-#      vars:
-#        outputs:
-#          # some IP addresses here!
-#          private_instances: ''
+- hosts: localhost
+  tasks:
+    - debug: var=outputs
+      vars:
+        outputs:
+          # some IP addresses here!
+          private_instances: "{{ hostvars.localhost.terraform_provision.outputs.priv_floating_ips.value }}"

@@ -16,6 +16,7 @@ locals {
      for priv in openstack_compute_instance_v2.private_instance:
         priv.name => [for each in priv.network : each.fixed_ip_v4 if each.name == "{{ private_network.name }}"][0]
    }
+
 }
 
 output "cluster_nodes" {
@@ -47,4 +48,9 @@ output "cluster_nodes" {
 output "router_private_ip" {
   description = "The IP address of the router on the private network"
   value       = local.router_private_ip[0]
+}
+
+output "priv_floating_ips" {
+  description = "The floating IP addresses of the private instances"
+  value       = openstack_networking_floatingip_v2.fl_ip_priv[*].address
 }
