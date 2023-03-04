@@ -10,22 +10,10 @@
     - include_vars: "{{ config_file }}"
       when: st.stat.exists and st.stat.isreg
 
-    - name: Get tenant network info
-      openstack.cloud.subnets_info:
-        cloud: "{{ clouds.devstack | default(omit) }}"
-        name: "{{ cluster_network }}"
-      register: tenant_subnet_info
-    - set_fact:
-        tenant_network: "{{ tenant_subnet_info.openstack_subnets.0 }}"
-    - set_fact:
-        tenant_network: "{{ tenant_network | combine({'nameserver': tenant_network_nameserver}) }}"
-
     - ansible.builtin.include_role:
         name: cluster_infra
 
 - hosts: routers
-  vars:
-    tenant_network: "{{ hostvars['localhost']['tenant_network'] }}"
   tasks:
     - ansible.builtin.include_role:
         name: router_config
@@ -33,7 +21,6 @@
 - hosts: private
   vars:
     router_ip_private: "{{ hostvars.localhost.terraform_provision.outputs.router_private_ip.value }}"
-    tenant_network: "{{ hostvars.localhost.tenant_network }}"
     squid_proxy_certificate: "{{ hostvars[cluster_name+'-router']['squid_proxy_certificate'] }}"
   tasks:
     - ansible.builtin.include_role:

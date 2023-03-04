@@ -56,6 +56,7 @@ parameters:
     label: Private instance RDP
     description: Whether RDP should be installed on the private instances.
     kind: boolean
+    required: false
     default: yes
 
 usage_template: |-

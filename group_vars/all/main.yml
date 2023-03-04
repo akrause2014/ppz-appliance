@@ -4,7 +4,10 @@ vdi_ips:
   - 10.22.10.3
   - 10.22.10.4
 
-tenant_network_nameserver: 10.1.0.2
+tenant_network:
+  name: ppzt1-tenant
+  nameserver: 10.1.0.2
+  cidr: "10.1.0.0/24"
 
 private_network:
   name: privnet-azimuth
