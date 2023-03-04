@@ -4,3 +4,5 @@ collections:
   - name: https://github.com/stackhpc/ansible-collection-terraform
     type: git
     version: 75fb75132bbc77e3e78a05ba674458131da2b1dd
+  - name: ansible.utils
+    version: 2.9.0
