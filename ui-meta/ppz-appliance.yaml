@@ -52,12 +52,14 @@ parameters:
       min: 40
     default: 50
 
-  - name: private_instance_disk_rdp
-    label: Private instance RDP
-    description: Whether RDP should be installed on the private instances.
+  - name: private_instance_rdp
+    label: RDP on private instances
+    description: If selected RDP will be installed on the private instances.
     kind: boolean
     required: false
-    default: yes
+    default: true
+    options:
+      checkboxLabel: Install RDP on private instances?
 
 usage_template: |-
 
