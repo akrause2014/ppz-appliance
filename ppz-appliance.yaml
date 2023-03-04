@@ -1,22 +1,14 @@
 ---
 
-- hosts: openstack
-  vars:
-    config_file: "{{ lookup('env', 'OS_CLIENT_CONFIG_FILE') }}"
+- name: Provision infrastructure
+  hosts: openstack
+  roles:
+    - cluster_infra
 
-  tasks:
-    - stat: path="{{ config_file }}"
-      register: st
-    - include_vars: "{{ config_file }}"
-      when: st.stat.exists and st.stat.isreg
-
-    - ansible.builtin.include_role:
-        name: cluster_infra
-
-- hosts: routers
-  tasks:
-    - ansible.builtin.include_role:
-        name: router_config
+- name: Configure router
+  hosts: routers
+  roles:
+    - name: router_config
  
 - hosts: private
   vars:
