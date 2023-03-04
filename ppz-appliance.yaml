@@ -11,6 +11,7 @@
     - name: router_config
  
 - hosts: private
+  become: yes
   vars:
     router_ip_private: "{{ hostvars.localhost.terraform_provision.outputs.router_private_ip.value }}"
     squid_proxy_certificate: "{{ hostvars[cluster_name+'-router']['squid_proxy_certificate'] }}"
