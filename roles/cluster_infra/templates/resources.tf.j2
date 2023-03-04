@@ -1,0 +1,85 @@
+#####
+##### The identity scope we are operating in
+##### Used to output the OpenStack project ID as a fact for provisioned hosts
+#####
+data "openstack_identity_auth_scope_v3" "scope" {
+  name = "{{ cluster_name }}"
+}
+
+# Tenant network
+data "openstack_networking_network_v2" "tenant_network" {
+  name = "{{ tenant_network.name }}"
+}
+data "openstack_networking_subnet_v2" "tenant_subnet" {
+  name = "{{ tenant_network.name }}"
+}
+
+# Private network
+
+resource "openstack_networking_network_v2" "private_network" {
+  name           = "{{ private_network.name }}"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "private_subnet" {
+  name       = "{{ private_network.name }}"
+  network_id = "${openstack_networking_network_v2.private_network.id}"
+  cidr       = "{{ private_network.cidr }}"
+  gateway_ip = "{{ private_network.gateway_ip }}"
+  allocation_pool {
+    start = "{{ private_network.allocation_pool_start }}"
+    end   = "{{ private_network.allocation_pool_end }}"
+  }
+}
+
+# Router instance
+
+resource "openstack_networking_port_v2" "router_private_port" {
+  network_id            = openstack_networking_network_v2.private_network.id
+  no_security_groups    = true
+  port_security_enabled = false
+  admin_state_up        = true
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.private_subnet.id
+  }
+}
+
+resource "openstack_compute_instance_v2" "router" {
+  name        = "{{ cluster_name }}-router"
+  flavor_id   = "{{ router_flavor }}"
+  user_data   = <<-EOT
+    #cloud-config
+    bootcmd:
+      - ip route del default via {{ private_network.gateway_ip }}
+    ssh_authorized_keys:
+      - {{ cluster_deploy_ssh_public_key }}
+      - {{ cluster_user_ssh_public_key }}
+  EOT
+
+  block_device {
+    uuid                  = "{{ cluster_previous_image | default(cluster_image) }}"
+    source_type           = "image"
+    volume_size           = "{{ router_volume }}"
+    boot_index            = 0
+    destination_type      = "volume"
+    delete_on_termination = true
+  }
+
+  network {
+    name = "{{ tenant_network.name }}"
+  }
+
+  network {
+    port = openstack_networking_port_v2.router_private_port.id
+  }
+
+}
+
+resource "openstack_networking_floatingip_v2" "fl_ip_router" {
+  pool = "{{ cluster_floating_network }}"
+}
+
+resource "openstack_compute_floatingip_associate_v2" "fl_ip_router" {
+  floating_ip = openstack_networking_floatingip_v2.fl_ip_router.address
+  instance_id = "${openstack_compute_instance_v2.router.id}"
+}

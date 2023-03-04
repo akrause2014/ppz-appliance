@@ -1,0 +1,66 @@
+---
+
+- name: add hostname to /etc/hosts
+  become: yes
+  ansible.builtin.lineinfile:
+    dest: /etc/hosts
+    regexp: ^127\.0\.0\.1[ \t]+localhost
+    line: "{{ ansible_default_ipv4.address }} {{ ansible_hostname }}"
+    state: present
+
+- name: Create extra certificates directory if it does not exist
+  become: yes
+  ansible.builtin.file:
+    path: /usr/local/share/ca-certificates/extra/
+    state: directory
+    mode: 0755
+
+- name: Add trusted certificate
+  become: yes
+  ansible.builtin.copy:
+    dest: /usr/local/share/ca-certificates/extra/squid_proxyCA.crt
+    content: "{{ squid_proxy_certificate }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Reconfigure to accept new certificate
+  become: yes
+  ansible.builtin.command: update-ca-certificates
+
+- name: Add config for apt to use proxy
+  become: yes
+  ansible.builtin.template:
+    dest: /etc/apt/apt.conf.d/02proxy
+    src: ../templates/apt-conf-02proxy.j2
+
+- name: Add snap proxy for http
+  become: yes
+  ansible.builtin.command: snap set system proxy.http=http://{{ router_ip_private }}:3128
+- name: Add snap proxy for https
+  become: yes
+  ansible.builtin.command: snap set system proxy.https=http://{{ router_ip_private }}:3129
+- name: Restart snapd
+  become: yes
+  ansible.builtin.service:
+    name: snapd
+    state: restarted
+
+- name: Upgrade packages (this might take a while...)
+  become: yes
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: Check if reboot is required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: st
+- name: Reboot machine if required
+  become: yes
+  ansible.builtin.reboot:
+  when: st.stat.exists
+
+- name: Install RDP
+  ansible.builtin.include_tasks: rdp.yaml
+  when: private_instance_rdp|default('no'|bool)

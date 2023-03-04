@@ -1,0 +1,129 @@
+---
+- name: update cache
+  apt:
+    update_cache=yes
+
+- name: Install xrdp and required packages
+  ansible.builtin.apt:
+    name:
+      - xorg
+      - xfce4
+      - xfce4-goodies
+      - dbus-x11
+      - x11-xserver-utils
+      - xrdp
+    state: present
+  when: ansible_distribution_version == '22.04'
+
+- name: install XUbuntu desktop
+  apt:
+    name:
+      - xubuntu-desktop
+      - xorgxrdp
+      - dbus-x11
+      - xrdp
+    state: present
+  when: ansible_distribution_version != '22.04'
+          
+- name: install firefox
+  apt:
+    name: firefox
+    state: present
+
+- name: ensure xrdp is started
+  systemd:
+    name: xrdp
+    state: started
+    enabled: true
+
+- community.general.ini_file:
+     path: /etc/xrdp/xrdp.ini
+     section: Globals
+     option:     port
+     value: 'tcp://:3389'
+     backup: yes
+     no_extra_spaces: yes
+
+
+- community.general.ini_file:
+     path: /etc/xrdp/xrdp.ini
+     section: Globals
+     option: security_layer
+     value: rdp
+     backup: yes
+     no_extra_spaces: yes
+
+- lineinfile:
+    state: present
+    dest: /etc/xrdp/xrdp.ini
+    regexp: '^(;|#)?crypt_level'
+    line: 'crypt_level=high'
+
+- lineinfile:
+    state: present
+    dest: /etc/xrdp/xrdp.ini
+    regexp: '^(;|#)?ssl_protocols'
+    line: 'ssl_protocols=TLSv1.2, TLSv1.3'
+
+- lineinfile:
+    state: present
+    dest: /etc/xrdp/xrdp.ini
+    regexp: '^(;|#)?{{ item.key }}'
+    line: '{{ item.line }}'
+  loop:
+     - { key: 'LogLevel', line: 'LogLevel=INFO' }
+     - { key: 'SyslogLevel', line: 'LogLevel=INFO' }
+
+- name: XRDP | Patch Polkit
+  block:
+    - name: XRDP | Gather PolKit version for patch params
+      ansible.builtin.shell: pkaction --version | rev | cut -d' ' -f1 | rev
+      changed_when: false
+      register: pk_version
+      when: xrdp.colord_bypass
+
+    - name: XRDP | Ensure that colord patch is applied to the system - 'PolKit v0.106-'
+      ansible.builtin.blockinfile:
+        create: yes
+        path: /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
+        group: root
+        owner: root
+        mode: 0751
+        block: |
+            [Allow Colord all Users]
+            Identity=unix-user:*
+            
+Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+            ResultAny=no
+            ResultInactive=no
+            ResultActive=yes
+      when: xrdp.colord_bypass and pk_version.stdout is version('0.106', '<')
+
+    - name: XRDP | Ensure that colord patch is applied to the system - 'PolKit v0.106+'
+      ansible.builtin.template:
+        create: yes
+        path: /etc/polkit-1/localauthority/50-local.d/45-allow-colord.conf
+        group: root
+        owner: root
+        mode: 0751
+        block: |
+            [Allow Colord all Users]
+            Identity=unix-user:*
+            
+Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+            ResultAny=no
+            ResultInactive=no
+            ResultActive=yes
+      when: xrdp.colord_bypass and pk_version.stdout is version('0.106', '>=')
+
+  when: ansible_distribution_version == '22.04'
+  notify: Restart XRDP
+               
+- user:
+    name: xrdp
+    groups: ssl-cert
+    shell: /sbin/nologin
+    append: true  
+  notify: Restart XRDP
+
+

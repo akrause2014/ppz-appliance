@@ -1,0 +1,90 @@
+---
+
+- name: add hostname to /etc/hosts
+  become: yes
+  ansible.builtin.lineinfile:
+    dest: /etc/hosts
+    regexp: ^127\.0\.0\.1[ \t]+localhost
+    line: "127.0.0.1 {{ inventory_hostname }}"
+    state: present
+
+- name: Upgrade packages (this might take a while...)
+  become: yes
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: Check if reboot is required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: st
+- name: Reboot machine if required
+  become: yes
+  ansible.builtin.reboot:
+  when: st.stat.exists
+
+- set_fact:
+    interfaces: []
+- name: map interfaces to networks
+  set_fact:
+     interfaces: "{{ interfaces + [{'name': item, 'address': hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] }] }}"
+  loop: "{{ ansible_interfaces }}"
+
+- name: find private network interface on the router
+  set_fact:
+    private_network_interface: "{{ item.name }}"
+  when: item.address | ansible.utils.ipaddr(private_network.cidr)
+  loop: "{{ interfaces }}"
+
+- name: find tenant network interface on the router 
+  set_fact:
+    tenant_network_interface: "{{ item.name }}"
+  when: item.address | ansible.utils.ipaddr(tenant_network.cidr)
+  loop: "{{ interfaces }}"
+
+- name: Enable ipv4 forwarding
+  become: yes
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Install iptables-persistent
+  become: yes
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+
+- name: Add iptables configuration
+  become: yes
+  ansible.builtin.template:
+    src: ../templates/iptables.j2
+    dest: /etc/iptables/rules.v4
+    owner: root
+    group: root
+
+- name: Restore iptables state from the config
+  become: yes
+  community.general.iptables_state:
+    state: restored
+    path: /etc/iptables/rules.v4
+  async: "{{ ansible_timeout }}"
+  poll: 0
+
+- name: get current state of the firewall
+  become: yes
+  community.general.iptables_state:
+    state: saved
+    path: /tmp/iptables
+  check_mode: true
+  changed_when: false
+  register: iptables_state
+
+- name: show current state of the firewall
+  ansible.builtin.debug:
+    var: iptables_state.initial_state
+
+- name: Install and configure squid
+  ansible.builtin.include_tasks: squid.yaml

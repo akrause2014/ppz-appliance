@@ -1,0 +1,14 @@
+---
+
+vdi_ips:
+  - 10.22.10.3
+  - 10.22.10.4
+
+tenant_network_nameserver: 10.1.0.2
+
+private_network:
+  name: privnet-azimuth
+  cidr: "10.4.0.0/24"
+  gateway_ip: "10.4.0.1"
+  allocation_pool_start: "10.4.0.2"
+  allocation_pool_end: "10.4.0.254"

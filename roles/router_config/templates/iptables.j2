@@ -1,0 +1,29 @@
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+
+-A POSTROUTING -o {{ tenant_network_interface }} -j MASQUERADE --random
+
+# redirect HTTP and HTTPS to locally installed Squid instance
+-A PREROUTING -i {{ private_network_interface }} -p tcp --dport 80  -j REDIRECT --to-ports 3128
+-A PREROUTING -i {{ private_network_interface }} -p tcp --dport 443 -j REDIRECT --to-ports 3129
+
+COMMIT
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# Forwarding rules
+
+# Allow traffic from internal to external
+-A FORWARD -i {{ private_network_interface }} -o {{ tenant_network_interface }} -j ACCEPT
+# Allow returning traffic from external to internal
+-A FORWARD -i {{ tenant_network_interface }} -o {{ private_network_interface }} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+# Drop all other traffic that shouldn't be forwarded
+-A FORWARD -j DROP
+
+COMMIT
