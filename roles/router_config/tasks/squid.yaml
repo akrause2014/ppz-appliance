@@ -108,21 +108,24 @@
   ansible.builtin.template:
     src: ../templates/allowlist_domains.txt.j2
     dest: /etc/squid/allowlist_domains.txt
+  notify: Restart squid
 
 - name: Write allow urls config
   become: yes
   ansible.builtin.template:
     src: ../templates/allowlist_urls.txt.j2
     dest: /etc/squid/allowlist_urls.txt
+  notify: Restart squid
 
 - name: Write squid config
   become: yes
   ansible.builtin.template:
     src: ../templates/squid.conf.j2
     dest: /etc/squid/squid.conf
+  notify: Restart squid
 
-- name: Restart squid
-  become: yes
-  ansible.builtin.service:
-    name: squid
-    state: restarted
+#- name: Restart squid
+#  become: yes
+#  ansible.builtin.service:
+#    name: squid
+#    state: restarted
