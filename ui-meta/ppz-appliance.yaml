@@ -68,4 +68,7 @@ usage_template: |-
 
   # Accessing the cluster
 
-  Private instances can be accessed via the [EIDF Guacamole VDI](https://eidf-vdi.epcc.ed.ac.uk/vdi/)
+  Private instances can only be accessed via the [EIDF Guacamole VDI](https://eidf-vdi.epcc.ed.ac.uk/vdi/)
+  {% if cluster.outputs.private_instances %}
+  The IP addresses of the private instances are {{ private_instances }}.
+  {% endif %}
