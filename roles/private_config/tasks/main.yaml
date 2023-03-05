@@ -78,23 +78,6 @@
     - Restart sshd
   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "22"
 
-- block:
-  - lineinfile:
-      state: present
-      dest: /etc/pam.d/common-auth
-      regexp: '^auth\s+\[success=2 default=ignore\]'
-      line: 'auth    [success=2 default=ignore]      pam_unix.so nullok use_authtok'
-  - lineinfile:
-      state: present
-      dest: /etc/pam.d/common-auth
-      regexp: '^auth\s+\[success=1 default=ignore\]'
-      line: 'auth    [success=1 default=ignore]      pam_sss.so use_authtok'
-  - name: Ensure "cracklib-runtime" package is installed
-    apt:
-      name: cracklib-runtime
-
-  when: ansible_facts['distribution'] == "Ubuntu"
-
 - name: Install RDP
   ansible.builtin.include_tasks: rdp.yaml
   when: private_instance_rdp|default('no'|bool)
