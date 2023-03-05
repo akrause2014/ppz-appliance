@@ -1,7 +1,0 @@
----
-
-- name: Restart squid
-  service:
-    name: squid
-    state: restarted
-  become: yes
