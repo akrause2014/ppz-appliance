@@ -75,9 +75,11 @@ usage_template: |-
   {% endif %}
 
   {% if cluster.outputs.router_ip_private %}
+
   # Configuring the proxy in a browser
 
   The proxy configuration is:
   * HTTP proxy: {{ cluster.outputs.router_ip_private }} Port: 3128
   * HTTPS proxy: {{ cluster.outputs.router_ip_private }} Port: 3129
+
   {% endif %}
