@@ -70,16 +70,15 @@ usage_template: |-
 
   Private instances can only be accessed via the [EIDF VDI](https://eidf-vdi.epcc.ed.ac.uk/vdi/).
 
-  {% if cluster.outputs.private_instances %}
-  The IP addresses of the private instances are {{ cluster.outputs.private_instances }}.
-  {% endif %}
-
   {% if cluster.outputs.router_ip_private %}
 
-  # Configuring the proxy in a browser
+  ## Configuring the proxy in a browser
 
   The proxy configuration is:
   * HTTP proxy: {{ cluster.outputs.router_ip_private }} Port: 3128
   * HTTPS proxy: {{ cluster.outputs.router_ip_private }} Port: 3129
+
+  The proxy certificate is stored at `/usr/local/share/ca-certificates/extra/` and 
+  must be imported into the browser.
 
   {% endif %}
