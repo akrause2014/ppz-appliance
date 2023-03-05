@@ -26,3 +26,4 @@
         outputs:
           # some IP addresses here!
           private_instances: "{{ hostvars.localhost.terraform_provision.outputs.priv_floating_ips.value }}"
+          router_ip_private: "{{ hostvars.localhost.terraform_provision.outputs.router_private_ip.value }}"
